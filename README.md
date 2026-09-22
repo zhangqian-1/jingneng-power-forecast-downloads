@@ -1,55 +1,54 @@
-# 京能七站功率预测 · 镜像下载
+# 京能七站功率预测镜像下载
 
-本仓库提供七站总功率预测服务的离线 Docker 镜像、下载说明和文件校验值。
+当前交付版本：`v7station-platform-11f034bc1833`。本仓库提供已构建、已测试的离线 Docker 镜像包，可直接下载后交给部署人员。
 
-- 发布版本：`v7station-2025-042dcd1`
-- 模型版本：`trend_detail_7station_2025_v1`
-- 镜像构建所用源码提交：`042dcd1ccd1dd75f22cf9849a1cfffc14a93802e`
-- 平台：Linux AMD64、Linux ARM64
+- 构建源码提交：`11f034bc1833a22d0a6497b092b512211c8bfb3b`
+- 模型：`trend_detail_7station_2025_v1`，保留原七站模型，本次未重新训练。
+- 接口：`POST /api/v1/fluxcast/compute`，平台适配版本 `fluxcast_v1`。
 
-## 下载
+## 下载哪个文件
 
-[打开完整发布页面](https://github.com/zhangqian-1/jingneng-power-forecast-downloads/releases/tag/v7station-2025-042dcd1)
+[打开新版发布页](https://github.com/zhangqian-1/jingneng-power-forecast-downloads/releases/tag/v7station-platform-11f034bc1833)
 
-| 服务器架构 | 镜像包 | 大小 |
+| Linux 服务器架构 | 下载文件 | 大小 |
 |---|---|---|
-| `x86_64` / AMD64（Intel、AMD） | [offline-image-amd64-34703786520-1.zip](https://github.com/zhangqian-1/jingneng-power-forecast-downloads/releases/download/v7station-2025-042dcd1/offline-image-amd64-34703786520-1.zip) | 589.0 MiB |
-| `aarch64` / ARM64 | [offline-image-arm64-34703803433-1.zip](https://github.com/zhangqian-1/jingneng-power-forecast-downloads/releases/download/v7station-2025-042dcd1/offline-image-arm64-34703803433-1.zip) | 530.1 MiB |
-| ZIP 校验文件 | [SHA256SUMS](https://github.com/zhangqian-1/jingneng-power-forecast-downloads/releases/download/v7station-2025-042dcd1/SHA256SUMS) | 两个镜像 ZIP 的 SHA256 |
+| `x86_64`，Intel / AMD | [AMD64 镜像包](https://github.com/zhangqian-1/jingneng-power-forecast-downloads/releases/download/v7station-platform-11f034bc1833/offline-image-amd64-11f034bc1833-35712363412-1.zip) | 586.0 MiB |
+| `aarch64`，ARM | [ARM64 镜像包](https://github.com/zhangqian-1/jingneng-power-forecast-downloads/releases/download/v7station-platform-11f034bc1833/offline-image-arm64-11f034bc1833-35712566106-1.zip) | 526.8 MiB |
+| ZIP 校验文件 | [SHA256SUMS](https://github.com/zhangqian-1/jingneng-power-forecast-downloads/releases/download/v7station-platform-11f034bc1833/SHA256SUMS) | 校验上述两个 ZIP |
 
-在目标 Linux 服务器执行 `uname -m` 查看架构，只需下载匹配架构的一个镜像 ZIP 和校验文件。GitHub 自动生成的 `Source code (zip)` / `Source code (tar.gz)` 仅包含本下载仓库的说明文件，不包含 Docker 镜像。
+服务器执行 `uname -m` 查看架构，只需下载对应的一个镜像包和校验文件。发布页自动生成的 `Source code` 是本下载仓库的说明文件，不包含运行源码或镜像。完整工程见 [源码仓库](https://github.com/zhangqian-1/jingneng-power-forecast)；与本次镜像对应的版本为 [11f034b](https://github.com/zhangqian-1/jingneng-power-forecast/tree/11f034bc1833a22d0a6497b092b512211c8bfb3b)。
 
-## 校验与部署
+历史发布 `v7station-2025-042dcd1` 保留供追溯，不包含本次平台接口修改，不能用于新版交接。
 
-1. 将所选镜像 ZIP 和本发布页的 `SHA256SUMS` 放在同一个目录。在 Linux 中校验已下载的 ZIP：
+## 如何部署
 
-   ```bash
-   sha256sum --ignore-missing -c SHA256SUMS
-   ```
+目标服务器需要已安装并启动 Docker Engine、Docker Compose 2.20+。无需安装 Python、重新训练、重新构建或登录 GitHub 镜像仓库。
 
-   确认所选 ZIP 显示 `OK`。Windows PowerShell 可执行 `Get-FileHash -Algorithm SHA256 "镜像ZIP文件名"`，与 `SHA256SUMS` 中对应值比较。
+1. 将镜像 ZIP 和发布页的 `SHA256SUMS` 放在同一目录，执行 `sha256sum --ignore-missing -c SHA256SUMS`，确认所选 ZIP 显示 `OK`。Windows 可用 `Get-FileHash -Algorithm SHA256 "镜像ZIP文件名"` 与校验文件比较。
+2. 将 ZIP 解压到独立部署目录，进入该目录，执行下面前两条命令。这里的 `SHA256SUMS` 为包内校验文件。
+3. 保留 `.env` 中的镜像标签，按包内 `docs/Docker部署运行说明.md` 配置端口、监听地址及持久化目录，再执行启动命令。
 
-2. 将镜像 ZIP 解压到一个单独的部署目录，进入该目录。此时使用的是 ZIP 内部的 `SHA256SUMS`，用于校验部署文件与 `image.tar.gz`：
+```bash
+sha256sum -c SHA256SUMS
+docker load -i image.tar.gz
+# 配置 .env 后启动
+docker compose config --quiet
+docker compose up -d --pull never --wait --wait-timeout 300
+docker compose ps
+```
 
-   ```bash
-   sha256sum -c SHA256SUMS
-   docker load -i image.tar.gz
-   ```
+包内包含镜像、`.env`、Compose 配置、交接文档、JSON 样例和 `release.json`。默认仅监听 `127.0.0.1:8000`，跨机器接入需配置内网地址或网关，具体见部署说明。
 
-3. 保留包内 `.env` 中的镜像标签，按包内 `docs/Docker部署运行说明.md` 配置监听地址、端口和持久化目录。已安装并启动 Docker Engine、Docker Compose 2.20+ 后，在部署目录执行：
+## 平台接入要点
 
-   ```bash
-   docker compose config --quiet
-   docker compose up -d --pull never --wait --wait-timeout 300
-   docker compose ps
-   ```
+- 每次提交 `point_table + frames` JSON，包含七站 35 个测点（19 个功率、8 个温度、8 个湿度）、96 个连续的 15 分钟历史点。测点编码以包内清单为准。
+- 接口输入输出使用 UTC，模型内部转换为北京时间；平台不要重复换算。返回时间格式与请求一致。
+- 累计达到 672 个连续且天气可用的历史点后，返回未来 24 小时的 96 点总功率预测，`varname=totalPowerForecast`，`event_key=JNH.Fluxcast.Compute`，单位 MW。
+- 功率缺失补 0；温湿度仅沿用过去真实值。历史或天气未就绪时返回 HTTP 200 和空 `result_point`，通过 `reason`、`message` 说明原因。
+- 镜像不预装测试历史，需平台补传真实历史。旧版本升级使用新 runtime 目录并重新补传，不复用旧缓存。
 
-完整部署步骤见镜像 ZIP 内 `docs/Docker部署运行说明.md` 附录 A.2。接口与测点要求见同目录中的交接文档。默认服务仅监听服务器本机，跨机器接入按部署文档配置。
+## 已验证的内容
 
-## 版本与文件内容
+AMD64、ARM64 均已在 GitHub 完成容器启动、真实数据预测、重建后缓存恢复、73 天 / 7008 点滚动预测，以及镜像导出、重新导入和预测一致性测试。两种架构的历史测试集 MAPE 均约为 **10.88%**，详细数值与镜像身份见包内 `release.json`。
 
-两个 ZIP 均复用同一版本原始构建产物，保持原文件名和字节内容。镜像包包含运行程序、模型权重、部署配置、文档和接口样例；无需重新训练模型。
-
-容器运行需要平台通过接口提供七站真实历史。累计满足 672 个连续且温湿度可构造的历史点后，返回未来 24 小时的 96 点总功率预测。初始历史不足时返回 `409`，不会自动载入测试历史进行预热。
-
-各架构的镜像 ID、构建提交、校验值和原构建验证记录以包内 `release.json` 为准。本次发布复用已完成验证的镜像，未重新训练或重新构建；目标环境的部署与平台接入仍需在实际服务器验收。
+下载附件与构建原件逐字节校验一致。测试报告见 [源码仓库对应 Release](https://github.com/zhangqian-1/jingneng-power-forecast/releases/tag/v7station-platform-11f034bc1833)，本下载仓库仅提供镜像与校验文件。目标服务器的真实平台联调仍需完成，历史测试指标不代表未来实时预测精度。
