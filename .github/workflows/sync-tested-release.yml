@@ -70,13 +70,13 @@ jobs:
                   assert not any(n.startswith(('tests/', 'runtime/', 'models/', '.git/')) for n in checked)
           assert platforms == {'linux/amd64', 'linux/arm64'}
           (root / 'SHA256SUMS').write_text(''.join(checksums), encoding='utf-8')
-          (root / '交付说明.md').write_text(os.environ['RELEASE_NOTES'], encoding='utf-8')
+          (root / 'HANDOVER.md').write_text(os.environ['RELEASE_NOTES'], encoding='utf-8')
           PY
       - name: Upload as draft and verify asset digests
         run: |
           if ! gh release view "$SOURCE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$SOURCE_TAG" --repo "$GITHUB_REPOSITORY" --draft \
-              --title "七站单点预测：过去3天预测未来15分钟" --notes-file delivery/交付说明.md
+              --title "七站单点预测：过去3天预测未来15分钟" --notes-file delivery/HANDOVER.md
           fi
           python - <<'PY'
           import hashlib, json, os, subprocess
