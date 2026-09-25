@@ -74,16 +74,26 @@ jobs:
           PY
       - name: Upload as draft and verify asset digests
         run: |
-          gh release create "$SOURCE_TAG" --repo "$GITHUB_REPOSITORY" --draft \
-            --title "七站单点预测：过去3天预测未来15分钟" --notes-file delivery/交付说明.md
-          gh release upload "$SOURCE_TAG" delivery/* --repo "$GITHUB_REPOSITORY"
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$SOURCE_TAG" > release-check.json
+          if ! gh release view "$SOURCE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$SOURCE_TAG" --repo "$GITHUB_REPOSITORY" --draft \
+              --title "七站单点预测：过去3天预测未来15分钟" --notes-file delivery/交付说明.md
+          fi
           python - <<'PY'
-          import hashlib, json
+          import hashlib, json, os, subprocess
           from pathlib import Path
-          release = json.loads(Path('release-check.json').read_text())
+          repo, tag = os.environ['GITHUB_REPOSITORY'], os.environ['SOURCE_TAG']
+          def get_release():
+              releases = json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/releases?per_page=100']))
+              return next(r for r in releases if r['tag_name'] == tag)
+          release = get_release()
           assets = {a['name']:a for a in release['assets']}
           files = [p for p in Path('delivery').iterdir() if p.is_file()]
+          for path in files:
+              if path.name not in assets:
+                  assert release['draft'], 'Do not change files in a published release'
+                  subprocess.run(['gh','release','upload',tag,str(path),'--repo',repo],check=True)
+          release = get_release()
+          assets = {a['name']:a for a in release['assets']}
           assert set(assets) == {p.name for p in files}
           for path in files:
               with path.open('rb') as stream:
